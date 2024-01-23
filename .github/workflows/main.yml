@@ -2,7 +2,7 @@ name: .NetCore app to an IIS server
 
 env:
   ROOT_PATH: './HelloWorldApp.web'     
-  DOTNET_VERSION: '8.0'                    # set this to the .NET Core version to use
+  DOTNET_VERSION: '8.0'  # set this to the .NET Core version to use
 
 on:
   push:
@@ -11,11 +11,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build_and_deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
       - name: Set up .NET Core
         uses: actions/setup-dotnet@v1
@@ -30,30 +31,21 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nuget-
 
-      - name: Build with dotnet
-        run: dotnet build --configuration Release
-        working-directory: ${{ env.ROOT_PATH }}
+      - name: Build and deploy with dotnet
+        run: |
+          dotnet build --configuration Release ${{ env.ROOT_PATH }}
+          dotnet publish -c Release -o ${{ runner.workspace }}/myapp ${{ env.ROOT_PATH }}
 
-      - name: dotnet publish
-        run: dotnet publish -c Release -o ${{ env.DOTNET_ROOT }}/myapp
-        working-directory: ${{ env.ROOT_PATH }}
-
-      - name: Upload artifact for deployment job
+      - name: Upload artifact for deployment
         uses: actions/upload-artifact@v2
         with:
           name: .net-app
-          path: ${{ env.DOTNET_ROOT }}/myapp
+          path: ${{ runner.workspace }}/myapp
 
-  deploy:
-    runs-on: ubuntu-latest
-
-    needs: build
-
-    steps:
       - name: Download artifact for deployment
         uses: actions/download-artifact@v2
         with:
           name: .net-app
-          path: ${{ env.DOTNET_ROOT }}/downloaded-myapp
+          path: ${{ runner.workspace }}/downloaded-myapp
 
       # Add deployment steps using the downloaded artifacts as needed.
